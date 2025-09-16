@@ -5,7 +5,7 @@ import plotly.express as px
 from decimal import Decimal, ROUND_HALF_UP
 
 # --- Configuration ---
-st.set_page_config(layout="wide", page_title="Loan vs. Investment Calculator")
+st.set_page_config(layout="wide", page_title="Loan Repayment vs. Investment Growth Analyzer")
 
 # --- Financial Calculations ---
 def calculate_financials(
@@ -114,8 +114,6 @@ def calculate_minimum_loan_payment(loan_amount, loan_rate, years):
 
 
 # --- Streamlit App UI ---
-st.set_page_config(layout="wide", page_title="Loan vs. Investment Calculator")
-
 st.markdown("""
     <style>
         /* Reduce top padding on main page */
@@ -136,23 +134,39 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("Loan vs. Investment Analyzer")
+st.title("Loan Repayment vs. Investment Growth Analyzer")
 
-# Initialize session state for the slider
-if 'loan_payment_slider' not in st.session_state:
-    st.session_state.loan_payment_slider = 2250 # A default starting value
-
+# Financial Inputs
 st.sidebar.header("Financial Inputs")
-loan_amount = st.sidebar.number_input("Loan Amount", value=500000, key="loan_amount")
-loan_rate = st.sidebar.number_input("Loan Rate (%)", value=5.5, key="loan_rate") / 100
-investment_rate = st.sidebar.number_input("Investment Return Rate (%)", value=8.0, key="investment_rate") / 100
+loan_amount = st.sidebar.number_input("Loan Amount", value=500000, step=10000, key="loan_amount")
+loan_rate = st.sidebar.number_input("Loan Rate (%)", value=5.50, step=0.5, key="loan_rate") / 100
+investment_rate = st.sidebar.number_input("Investment Return Rate (%)", value=8.00, step=0.5, key="investment_rate") / 100
 total_monthly_payment = st.sidebar.number_input(
-    "Max Monthly Payment (Loan + Investment)", value=4000, key="total_monthly_payment"
+    "Max Monthly Payment (Loan + Investment)", value=4000, step=100, key="total_monthly_payment"
 )
-years = st.sidebar.number_input("Years", value=30, key="years")
+years = st.sidebar.number_input("Years", value=30, step=1, key="years")
 
 # Calculate minimum payment
 min_loan_payment = calculate_minimum_loan_payment(loan_amount, loan_rate, years)
+
+# On first load, compute optimal allocation and set slider accordingly
+if 'loan_payment_slider' not in st.session_state:
+    best_net_worth = -np.inf
+    sweet_spot_allocation = min_loan_payment
+    # Test allocations from minimum to max stepping by $25
+    for allocation in np.arange(min_loan_payment, total_monthly_payment + 1, 25):
+        _, _, _, _, _, final_net = calculate_financials(
+            loan_amount,
+            loan_rate,
+            investment_rate,
+            total_monthly_payment,
+            allocation,
+            years,
+        )
+        if final_net > best_net_worth:
+            best_net_worth = final_net
+            sweet_spot_allocation = allocation
+    st.session_state.loan_payment_slider = sweet_spot_allocation
 
 st.sidebar.header("Allocation Strategy")
 
