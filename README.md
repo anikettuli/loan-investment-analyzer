@@ -1,6 +1,10 @@
 # Loan Repayment vs. Investment Growth Analyzer
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://loan-investment-analyzer.streamlit.app/)
+<p align="center">
+  <a href="https://loan-investment-analyzer.streamlit.app/">
+    <img alt="Open in Streamlit" src="https://static.streamlit.io/badges/streamlit_badge_black_white.svg" width="250">
+  </a>
+</p>
 
 This interactive web application, built with Python and Streamlit, helps you visualize and determine the optimal strategy for allocating your money between paying off a loan and investing. By adjusting your monthly payments, you can find the "sweet spot" that maximizes your net worth over time.
 
