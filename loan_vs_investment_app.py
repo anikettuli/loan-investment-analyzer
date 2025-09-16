@@ -143,11 +143,11 @@ if 'loan_payment_slider' not in st.session_state:
     st.session_state.loan_payment_slider = 2250 # A default starting value
 
 st.sidebar.header("Financial Inputs")
-loan_amount = st.sidebar.number_input("Loan Amount", value=485000, key="loan_amount")
+loan_amount = st.sidebar.number_input("Loan Amount", value=500000, key="loan_amount")
 loan_rate = st.sidebar.number_input("Loan Rate (%)", value=5.5, key="loan_rate") / 100
 investment_rate = st.sidebar.number_input("Investment Return Rate (%)", value=8.0, key="investment_rate") / 100
 total_monthly_payment = st.sidebar.number_input(
-    "Max Monthly Payment (Loan + Investment)", value=4500, key="total_monthly_payment"
+    "Max Monthly Payment (Loan + Investment)", value=4000, key="total_monthly_payment"
 )
 years = st.sidebar.number_input("Years", value=30, key="years")
 
