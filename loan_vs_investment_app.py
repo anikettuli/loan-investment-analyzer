@@ -5,7 +5,10 @@ import plotly.express as px
 from decimal import Decimal, ROUND_HALF_UP
 
 # --- Configuration ---
-st.set_page_config(layout="wide", page_title="Loan Repayment vs. Investment Growth Analyzer")
+st.set_page_config(
+    layout="wide", page_title="Loan Repayment vs. Investment Growth Analyzer"
+)
+
 
 # --- Financial Calculations ---
 def calculate_financials(
@@ -39,35 +42,39 @@ def calculate_financials(
     total_interest_paid = Decimal("0.00")
     total_principal_paid = Decimal("0.00")
     total_invested = Decimal("0.00")
-    
+
     loan_paid_off = False
 
     for month in range(1, total_months + 1):
         # --- Update Balances ---
         # Investment
-        investment_balance *= (Decimal(1) + monthly_investment_rate)
+        investment_balance *= Decimal(1) + monthly_investment_rate
         investment_balance += monthly_investment_payment
         total_invested += monthly_investment_payment
 
         # Loan
         if loan_balance > 0:
-            loan_interest = (loan_balance * monthly_loan_rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            loan_interest = (loan_balance * monthly_loan_rate).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
             total_interest_paid += loan_interest
-            
+
             # Determine payment for this month
             if not loan_paid_off:
                 principal_payment = monthly_loan_payment - loan_interest
-                
+
                 # Is the loan paid off this month?
                 if loan_balance <= principal_payment:
                     final_principal_payment = loan_balance
                     total_principal_paid += final_principal_payment
-                    
+
                     # Any leftover from the allocated loan payment goes to investments
-                    overpayment = monthly_loan_payment - (final_principal_payment + loan_interest)
+                    overpayment = monthly_loan_payment - (
+                        final_principal_payment + loan_interest
+                    )
                     investment_balance += overpayment
                     total_invested += overpayment
-                    
+
                     loan_balance = Decimal("0.00")
                     loan_paid_off = True
                     # After payoff, all funds go to investments
@@ -76,8 +83,8 @@ def calculate_financials(
                     loan_balance -= principal_payment
                     total_principal_paid += principal_payment
             # This else block should not be needed if logic is correct, but as a safeguard
-            else: 
-                 monthly_investment_payment = total_monthly_payment
+            else:
+                monthly_investment_payment = total_monthly_payment
 
         # Store current state after calculations
         net_worth = investment_balance - loan_balance
@@ -94,27 +101,39 @@ def calculate_financials(
     investment_gains = investment_balance - total_invested
     final_net_worth = df["Net Worth"].iloc[-1]
 
-    return df, float(total_principal_paid), float(total_interest_paid), float(total_invested), float(investment_gains), float(final_net_worth)
+    return (
+        df,
+        float(total_principal_paid),
+        float(total_interest_paid),
+        float(total_invested),
+        float(investment_gains),
+        float(final_net_worth),
+    )
 
 
 def calculate_minimum_loan_payment(loan_amount, loan_rate, years):
     """Calculates the minimum monthly payment for a standard amortized loan."""
     if loan_rate == 0:
         return loan_amount / (years * 12)
-    
+
     monthly_rate = Decimal(loan_rate) / Decimal(12)
     num_payments = years * 12
-    
+
     if num_payments == 0:
         return loan_amount
-        
-    min_payment = (Decimal(loan_amount) * (monthly_rate * (1 + monthly_rate) ** num_payments) / ((1 + monthly_rate) ** num_payments - 1))
+
+    min_payment = (
+        Decimal(loan_amount)
+        * (monthly_rate * (1 + monthly_rate) ** num_payments)
+        / ((1 + monthly_rate) ** num_payments - 1)
+    )
     # Round up to the nearest cent to ensure loan is paid off
     return float(min_payment.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 # --- Streamlit App UI ---
-st.markdown("""
+st.markdown(
+    """
     <style>
         /* Reduce top padding on main page */
         .reportview-container .main .block-container {
@@ -132,17 +151,32 @@ st.markdown("""
         h2 { font-size: 2em; }
         h3 { font-size: 1.5em; }
     </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 st.title("Loan Repayment vs. Investment Growth Analyzer")
 
 # Financial Inputs
 st.sidebar.header("Financial Inputs")
-loan_amount = st.sidebar.number_input("Loan Amount", value=500000, step=10000, key="loan_amount")
-loan_rate = st.sidebar.number_input("Loan Rate (%)", value=5.50, step=0.5, key="loan_rate") / 100
-investment_rate = st.sidebar.number_input("Investment Return Rate (%)", value=8.00, step=0.5, key="investment_rate") / 100
+loan_amount = st.sidebar.number_input(
+    "Loan Amount", value=500000, step=10000, key="loan_amount"
+)
+loan_rate = (
+    st.sidebar.number_input("Loan Rate (%)", value=5.50, step=0.5, key="loan_rate")
+    / 100
+)
+investment_rate = (
+    st.sidebar.number_input(
+        "Investment Return Rate (%)", value=8.00, step=0.5, key="investment_rate"
+    )
+    / 100
+)
 total_monthly_payment = st.sidebar.number_input(
-    "Max Monthly Payment (Loan + Investment)", value=4000, step=100, key="total_monthly_payment"
+    "Max Monthly Payment (Loan + Investment)",
+    value=4000,
+    step=100,
+    key="total_monthly_payment",
 )
 years = st.sidebar.number_input("Years", value=30, step=1, key="years")
 
@@ -150,7 +184,7 @@ years = st.sidebar.number_input("Years", value=30, step=1, key="years")
 min_loan_payment = calculate_minimum_loan_payment(loan_amount, loan_rate, years)
 
 # On first load, compute optimal allocation and set slider accordingly
-if 'loan_payment_slider' not in st.session_state:
+if "loan_payment_slider" not in st.session_state:
     best_net_worth = -np.inf
     sweet_spot_allocation = min_loan_payment
     # Test allocations from minimum to max stepping by $25
@@ -176,7 +210,9 @@ if st.sidebar.button("Find Optimal Split", key="optimize_button"):
         best_net_worth = -np.inf
         sweet_spot_allocation = min_loan_payment
         # Iterate from min payment to max possible payment
-        for allocation in np.arange(min_loan_payment, total_monthly_payment + 1, 25): # Stepping by $25 for speed
+        for allocation in np.arange(
+            min_loan_payment, total_monthly_payment + 1, 25
+        ):  # Stepping by $25 for speed
             _, _, _, _, _, final_net_worth = calculate_financials(
                 loan_amount,
                 loan_rate,
@@ -204,7 +240,7 @@ with col1:
         value=float(st.session_state.loan_payment_slider),
         step=25.0,
         key="loan_payment_number",
-        label_visibility="collapsed"
+        label_visibility="collapsed",
     )
     # If number input is changed, update the session state
     if number_value != st.session_state.loan_payment_slider:
@@ -220,8 +256,8 @@ with col2:
         max_value=float(total_monthly_payment),
         value=float(st.session_state.loan_payment_slider),
         step=25.0,
-        key="loan_payment_slider_widget", # Use a different key for the widget itself
-        label_visibility="collapsed"
+        key="loan_payment_slider_widget",  # Use a different key for the widget itself
+        label_visibility="collapsed",
     )
     # If slider is changed, update the session state
     if slider_value != st.session_state.loan_payment_slider:
@@ -234,14 +270,23 @@ loan_payment_amount = st.session_state.loan_payment_slider
 investment_payment_amount = total_monthly_payment - loan_payment_amount
 st.sidebar.write(f"**Loan Payment:** ${loan_payment_amount:,.2f}")
 st.sidebar.write(f"**Investment:** ${investment_payment_amount:,.2f}")
-st.sidebar.info(f"Minimum required loan payment is ${min_loan_payment:,.2f} to pay off the loan in {years} years.")
+st.sidebar.info(
+    f"Minimum required loan payment is ${min_loan_payment:,.2f} to pay off the loan in {years} years."
+)
 
 
 # --- Main Panel ---
 st.header("Financial Projections")
 
 # Calculate data for the selected allocation
-df, total_principal, total_interest, total_invested, investment_gains, final_net_worth = calculate_financials(
+(
+    df,
+    total_principal,
+    total_interest,
+    total_invested,
+    investment_gains,
+    final_net_worth,
+) = calculate_financials(
     loan_amount,
     loan_rate,
     investment_rate,
@@ -256,10 +301,18 @@ col1, col2, col3 = st.columns(3)
 with col1:
     st.metric("Final Net Worth", f"${final_net_worth:,.2f}")
     st.metric("Total Invested", f"${total_invested:,.2f}")
-    st.metric("Investment Gains", f"${investment_gains:,.2f}", help="Total value of the investment portfolio minus the total cash invested.")
+    st.metric(
+        "Investment Gains",
+        f"${investment_gains:,.2f}",
+        help="Total value of the investment portfolio minus the total cash invested.",
+    )
 with col2:
     st.metric("Total Principal Paid", f"${total_principal:,.2f}")
-    st.metric("Total Interest Paid", f"${total_interest:,.2f}", help="The total cost of borrowing the money.")
+    st.metric(
+        "Total Interest Paid",
+        f"${total_interest:,.2f}",
+        help="The total cost of borrowing the money.",
+    )
 with col3:
     # Correctly find the first month the loan is paid off
     paid_off_months = df[df["Loan Balance"] == 0]
@@ -267,11 +320,11 @@ with col3:
         loan_payoff_month = paid_off_months["Month"].min()
         # If paid off on the very last month, consider it "On Time"
         if loan_payoff_month == years * 12:
-             st.metric("Loan Payoff Time", "On Time")
+            st.metric("Loan Payoff Time", "On Time")
         else:
             st.metric("Loan Payoff Time", f"{loan_payoff_month / 12:.1f} years")
     # Check if the final balance is effectively zero
-    elif abs(df['Loan Balance'].iloc[-1]) < 1:
+    elif abs(df["Loan Balance"].iloc[-1]) < 1:
         st.metric("Loan Payoff Time", "On Time")
     else:
         st.metric("Loan Payoff Time", "Not Paid Off")
@@ -306,7 +359,19 @@ yearly_summary["Year"] = yearly_summary["Month"] // 12
 if not df.empty and df.iloc[-1]["Month"] % 12 != 0:
     last_row = df.iloc[[-1]].copy()
     last_row["Year"] = np.ceil(last_row["Month"] / 12)
-    yearly_summary = pd.concat([yearly_summary, last_row]).drop_duplicates(subset="Year", keep="last")
+    yearly_summary = pd.concat([yearly_summary, last_row]).drop_duplicates(
+        subset="Year", keep="last"
+    )
 
-yearly_summary = yearly_summary[["Year", "Loan Balance", "Investment Portfolio", "Net Worth"]].sort_values("Year")
-st.dataframe(yearly_summary.style.format({"Loan Balance": "${:,.2f}", "Investment Portfolio": "${:,.2f}", "Net Worth": "${:,.2f}"}))
+yearly_summary = yearly_summary[
+    ["Year", "Loan Balance", "Investment Portfolio", "Net Worth"]
+].sort_values("Year")
+st.dataframe(
+    yearly_summary.style.format(
+        {
+            "Loan Balance": "${:,.2f}",
+            "Investment Portfolio": "${:,.2f}",
+            "Net Worth": "${:,.2f}",
+        }
+    )
+)
